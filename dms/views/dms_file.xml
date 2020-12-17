@@ -345,6 +345,12 @@
                         string="Unlock"
                         attrs="{'invisible':['|',('is_locked', '=', False),('is_lock_editor', '=', False)]}"
                     />
+                    <button
+                        name="%(portal.portal_share_action)d"
+                        string="Share"
+                        type="action"
+                        class="oe_highlight oe_read_only"
+                    />
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box" />
@@ -409,6 +415,23 @@
                                 options="{'color_field': 'color', 'no_create_edit': True}"
                             />
                         </group>
+                    </group>
+                    <group>
+                        <field name="storage_id_save_type" invisible="True" />
+                        <field
+                            name="res_model"
+                            readonly="True"
+                            attrs="{'invisible': [('storage_id_save_type', '!=', 'attachment')]}"
+                        />
+                        <field
+                            name="res_id"
+                            readonly="True"
+                            attrs="{'invisible': [('storage_id_save_type', '!=', 'attachment')]}"
+                        />
+                        <field
+                            name="record_ref"
+                            attrs="{'invisible': [('storage_id_save_type', '!=', 'attachment')]}"
+                        />
                     </group>
                     <notebook>
                         <page name="page_meta" string="Meta Information">

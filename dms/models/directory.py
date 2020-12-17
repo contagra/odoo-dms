@@ -24,6 +24,7 @@ class DmsDirectory(models.Model):
     _description = "Directory"
 
     _inherit = [
+        "portal.mixin",
         "dms.security.mixin",
         "dms.mixins.thumbnail",
         "mail.thread",
@@ -199,6 +200,134 @@ class DmsDirectory(models.Model):
                 """,
     )
 
+    def _get_share_url(self, redirect=False, signup_partner=False, pid=None):
+        self.ensure_one()
+        return "/my/dms/directory/{}?access_token={}&db={}".format(
+            self.id, self._portal_ensure_token(), self.env.cr.dbname,
+        )
+
+    def check_access_token(self, access_token=False):
+        res = False
+        if access_token:
+            items = self.env["dms.directory"].search(
+                [("access_token", "=", access_token)]
+            )
+            if items:
+                item = items[0]
+                if item.id == self.id:
+                    return True
+                else:
+                    directory_item = self
+                    while directory_item.parent_id:
+                        if directory_item.id == item.id:
+                            return True
+                        directory_item = directory_item.parent_id
+                    # Fix last level
+                    if directory_item.id == item.id:
+                        return True
+        return res
+
+    @api.model
+    def _get_parent_categories(self, access_token):
+        self.ensure_one()
+        directories = [self]
+        current_directory = self
+        if access_token:
+            # Only show parent categories to access_token
+            stop = False
+            while current_directory.parent_id and not stop:
+                if current_directory.access_token == access_token:
+                    stop = False
+                else:
+                    directories.append(current_directory.parent_id)
+                current_directory = current_directory.parent_id
+        else:
+            while (
+                current_directory.parent_id
+                and current_directory.parent_id.check_access("read", False)
+            ):
+                directories.append(current_directory.parent_id)
+                current_directory = current_directory.parent_id
+        return directories[::-1]
+
+    def _get_own_root_directories(self, user_id):
+        ids = []
+        items = (
+            self.env["dms.directory"]
+            .with_user(user_id)
+            .search([("is_hidden", "=", False)])
+        )
+        for item in items:
+            current_directory = item
+            while (
+                current_directory.parent_id
+                and current_directory.parent_id.check_access("read", False)
+            ):
+                current_directory = current_directory.parent_id
+
+            if current_directory.id not in ids:
+                ids.append(current_directory.id)
+
+        return ids
+
+    def check_access(self, operation, raise_exception=False):
+        res = super(DmsDirectory, self).check_access(operation, raise_exception)
+        if self.env.user.has_group("base.group_portal"):
+            if self.id in self._get_ids_without_access_groups(operation):
+                res = False
+        # Fix show breadcrumb with share button (public)
+        if self.env.user.has_group("base.group_public"):
+            res = True
+        return res
+
+    allowed_model_ids = fields.Many2many(
+        compute="_compute_allowed_model_ids", comodel_name="ir.model", store=False
+    )
+    model_id = fields.Many2one(
+        comodel_name="ir.model",
+        domain="[('id', 'in', allowed_model_ids)]",
+        compute="_compute_model_id",
+        inverse="_inverse_model_id",
+        string="Model",
+        store=True,
+    )
+    res_model = fields.Char(string="Linked attachments model")
+    res_id = fields.Integer(string="Linked attachments record ID")
+    record_ref = fields.Reference(
+        string="Record Referenced", compute="_compute_record_ref", selection=[]
+    )
+    storage_id_save_type = fields.Selection(related="storage_id.save_type", store=False)
+
+    @api.depends("root_storage_id", "storage_id")
+    def _compute_allowed_model_ids(self):
+        for record in self:
+            record.allowed_model_ids = False
+            if record.root_storage_id and record.root_storage_id.model_ids:
+                record.allowed_model_ids = record.root_storage_id.model_ids.ids
+            elif record.storage_id and record.storage_id.model_ids:
+                record.allowed_model_ids = record.storage_id.model_ids.ids
+
+    @api.depends("res_model")
+    def _compute_model_id(self):
+        for record in self:
+            if not record.res_model:
+                record.model_id = False
+                continue
+            record.model_id = self.env["ir.model"].search(
+                [("model", "=", record.res_model)]
+            )
+
+    def _inverse_model_id(self):
+        for record in self:
+            record.res_model = record.model_id.model
+
+    @api.depends("res_model", "res_id")
+    def _compute_record_ref(self):
+        for record in self:
+            record.record_ref = False
+            if record.res_model and record.res_id:
+                record.record_ref = "{},{}".format(record.res_model, record.res_id)
+
     @api.depends("name", "complete_name")
     def _compute_display_name(self):
         if not self.env.context.get("directory_short_name", False):
@@ -241,6 +370,26 @@ class DmsDirectory(models.Model):
     # ----------------------------------------------------------
     # Search
     # ----------------------------------------------------------
+    @api.model
+    def _search(
+        self,
+        args,
+        offset=0,
+        limit=None,
+        order=None,
+        count=False,
+        access_rights_uid=None,
+    ):
+        result = super(DmsDirectory, self)._search(
+            args, offset, limit, order, False, access_rights_uid
+        )
+        if result:
+            directory_ids = set(result)
+            if self.env.user.has_group("base.group_portal"):
+                exclude_ids = self._get_ids_without_access_groups("read")
+                directory_ids -= set(exclude_ids)
+                return directory_ids
+        return result
 
     @api.model
     def _search_starred(self, operator, operand):
