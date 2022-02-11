@@ -9,9 +9,9 @@ class DmsStorage(models.Model):
     _inherit = "dms.storage"
 
     has_versioning = fields.Boolean(
-        default=False,
-        help="Indicates if files have an active version control.",
+        default=False, help="Indicates if files have an active version control.",
     )
 
     def action_delete_file_versions(self):
-        self.mapped("storage_file_ids.version_ids").unlink()
+        self.mapped("storage_file_ids.old_revision_ids").unlink()
+
