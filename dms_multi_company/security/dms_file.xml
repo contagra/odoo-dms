@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo noupdate="1">
+    <record model="ir.rule" id="dms_file_company_rule">
+        <field name="name">DMS File multi-company</field>
+        <field name="model_id" ref="model_dms_file" />
+        <field
+            name="domain_force"
+        >['|',('company_ids','=',False),('company_ids', 'in', company_ids)]</field>
+    </record>
+</odoo>
