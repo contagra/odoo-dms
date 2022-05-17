@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<templates id="template" xml:space="preserve">
+    <t t-name="dms_action.FieldDMSAction">
+        <div class="o_dms_action">
+            <div t-foreach="widget.values" t-as="value">
+                <button
+                    t-att-data-name="value[0]"
+                    class="o_dms_play_action btn btn-icon btn-primary"
+                    type="object"
+                >
+                    <t t-esc="value[1]" />
+                </button>
+            </div>
+        </div>
+    </t>
+</templates>
