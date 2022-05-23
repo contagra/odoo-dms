@@ -1,8 +1,8 @@
 # Copyright 2017-2020 MuK IT GmbH
 # Copyright 2021 Tecnativa - Víctor Martínez
-# License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
-from odoo import api, fields, models
+from odoo import fields, models
 
 
 class DmsFile(models.Model):
@@ -15,26 +15,17 @@ class DmsFile(models.Model):
     old_revision_ids = fields.One2many(
         comodel_name="dms.file",
     )
-    # TODO: Move to base_revision addon
-    revisions_count = fields.Integer(compute="_compute_revisions_count")
-
-    @api.depends("old_revision_ids")
-    def _compute_revisions_count(self):
-        res = (
-            self.with_context(active_test=False)
-            .read_group(
-                domain=[("current_revision_id", "in", self.ids)],
-                fields=["current_revision_id"],
-                groupby=["current_revision_id"],
-            )
-        )
-        revision_dict = {
-            x["current_revision_id"][0]: x["current_revision_id_count"] for x in res
-        }
-        for rec in self:
-            rec.revisions_count = revision_dict.get(rec.id, 0)
+    has_versioning = fields.Boolean(
+        related="storage_id.has_versioning",
+    )
 
     def action_view_revision(self):
         self.ensure_one()
         action = self.env.ref("dms_version.action_dms_revisions_file")
         return action.read()[0]
+
+    def write(self, vals):
+        res = super().write(vals)
+        if vals.get("content"):
+            self.filtered(lambda x: x.storage_id.has_versioning).create_revision()
+        return res

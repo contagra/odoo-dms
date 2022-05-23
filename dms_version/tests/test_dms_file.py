@@ -1,6 +1,6 @@
 # Copyright 2017-2020 MuK IT GmbH
 # Copyright 2021 Tecnativa - Víctor Martínez
-# License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
+# License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
 
 import base64
 
@@ -14,22 +14,14 @@ class TestFileVersion(DocumentsBaseCase):
         self.storage_demo.sudo().write({"has_versioning": True})
 
     @multi_users(lambda self: self.multi_users(), callback="_setup_test_data")
-    def test_version_revert(self):
+    def test_file_version(self):
         dms_file = self.env.ref("dms.file_13_demo")
+        self.assertFalse(dms_file.current_revision_id)
+        self.assertTrue(dms_file.active)
         dms_file.write({"content": base64.b64encode(b"\xff new")})
-        self.assertEqual(len(dms_file.version_ids.ids), 1)
-        self.assertEqual(dms_file.versions_count, 1)
-        dms_file.action_revert_version()
-        self.assertEqual(len(dms_file.version_ids.ids), 0)
-        self.assertEqual(dms_file.versions_count, 0)
-        self.assertNotEqual(dms_file.content, base64.b64encode(b"\xff new"))
-
-    @multi_users(lambda self: self.multi_users(), callback="_setup_test_data")
-    def test_version_delete(self):
-        dms_file = self.env.ref("dms.file_13_demo")
-        dms_file.write({"content": self.content_base64()})
-        self.assertEqual(len(dms_file.version_ids.ids), 1)
-        self.assertEqual(dms_file.versions_count, 1)
-        dms_file.action_delete_versions()
-        self.assertEqual(len(dms_file.version_ids.ids), 0)
-        self.assertEqual(dms_file.versions_count, 0)
+        self.assertTrue(dms_file.current_revision_id)
+        self.assertFalse(dms_file.active)
+        self.assertTrue(dms_file.current_revision_id.active)
+        self.assertEqual(dms_file.current_revision_id.revision_number, 1)
+        self.assertIn(dms_file, dms_file.current_revision_id.old_revision_ids)
+        self.assertEqual(dms_file.current_revision_id.revision_count, 1)

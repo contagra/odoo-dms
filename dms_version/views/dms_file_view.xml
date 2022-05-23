@@ -1,15 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!--
     Copyright 2017-2020 MuK IT GmbH
-    License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl).
+    Copyright 2021 Tecnativa - Víctor Martínez
+    License AGPL-3.0 or later (http://www.gnu.org/licenses/agpl).
   -->
 <odoo>
     <record id="action_dms_revisions_file" model="ir.actions.act_window">
         <field name="name">Revisions</field>
         <field name="res_model">dms.file</field>
         <field name="view_mode">tree</field>
-        <field name="domain">["|", ("active", "=", False), ("active", "=", True)]</field>
-        <field name="context">{'search_default_current_revision_id': active_id, 'default_current_revision_id': active_id}</field>
+        <field
+            name="domain"
+        >["|", ("active", "=", False), ("active", "=", True)]</field>
+        <field
+            name="context"
+        >{'search_default_current_revision_id': active_id, 'default_current_revision_id': active_id}</field>
     </record>
     <record id="search_dms_file" model="ir.ui.view">
         <field name="name">dms_file.search</field>
@@ -21,17 +26,32 @@
             </field>
         </field>
     </record>
+    <record id="view_dms_file_tree" model="ir.ui.view">
+        <field name="name">dms_file.tree</field>
+        <field name="model">dms.file</field>
+        <field name="inherit_id" ref="dms.view_dms_file_tree" />
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="current_revision_id" />
+                <field name="revision_number" />
+                <field name="unrevisioned_name" />
+            </field>
+            <field name="path_names" position="after">
+                <field name="revision_count" />
+            </field>
+        </field>
+    </record>
     <record id="view_dms_file_kanban" model="ir.ui.view">
         <field name="name">dms.kanban</field>
         <field name="model">dms.file</field>
         <field name="inherit_id" ref="dms.view_dms_file_kanban" />
         <field name="arch" type="xml">
             <xpath expr="//templates" position="before">
-                <field name="revisions_count" />
+                <field name="revision_count" />
             </xpath>
             <xpath expr="//a[@type='delete']" position="after">
                 <a
-                    t-if="record.revisions_count.raw_value > 0"
+                    t-if="record.revision_count.raw_value > 0"
                     role="menuitem"
                     class="dropdown-item"
                     type="action"
@@ -48,10 +68,12 @@
         <field name="inherit_id" ref="dms.view_dms_file_form" />
         <field name="arch" type="xml">
             <xpath expr="//header" postion='inside'>
+                <field name="has_versioning" invisible="1" />
                 <button
                     name="create_revision"
                     string="New Version of file"
                     type="object"
+                    attrs="{'invisible': ['|', ('has_versioning', '=', False),('current_revision_id', '!=', False)]}"
                 />
             </xpath>
             <xpath expr="//div[@name='button_box']" position="inside">
@@ -59,14 +81,10 @@
                     name="action_view_revision"
                     type="object"
                     class="oe_stat_button"
-                    icon="fa-file-archive-o"
-                    attrs="{'invisible': [('revisions_count', '=', 0)]}"
+                    icon="fa-paperclip"
+                    attrs="{'invisible': [('revision_count', '=', 0)]}"
                 >
-                    <field
-                        name="revisions_count"
-                        widget="statinfo"
-                        string="Revisions"
-                    />
+                    <field name="revision_count" widget="statinfo" string="Revisions" />
                 </button>
             </xpath>
             <page name="page_access" position="after">
