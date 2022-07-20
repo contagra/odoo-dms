@@ -53,7 +53,7 @@
             <t t-set="breadcrumbs_searchbar" t-value="True" />
             <t t-call="portal.portal_searchbar" />
             <t t-if="not dms_directories and not dms_files">
-                <div class="alert alert-warning mt8" role="alert">Not results</div>
+                <div class="alert alert-warning mt8" role="alert">No results</div>
             </t>
             <t t-if="dms_directories or dms_files" t-call="portal.portal_table">
                 <thead>
