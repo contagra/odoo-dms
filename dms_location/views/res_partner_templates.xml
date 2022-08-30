@@ -1,9 +1,0 @@
-<odoo>
-
-    <template id="portal_my_identity" name="My Identity">
-        <t t-call="portal.portal_layout">
-
-        </t>
-    </template>
-
-</odoo>
