@@ -16,6 +16,7 @@
                 <div
                     class="app_settings_block"
                     data-string="Documents"
+                    string="Documents"
                     data-key="dms"
                     groups="base.group_system"
                 >
