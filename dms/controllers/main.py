@@ -12,14 +12,10 @@ class OnboardingController(http.Controller):
         check = request.env.user.has_group("dms.group_dms_manager")
         if check and not closed:
             return {
-                "html": request.env.ref(
-                    "dms.document_onboarding_directory_panel"
-                )._render(
-                    {
-                        "state": company.get_and_update_documents_onboarding_state(),
-                        "company": company,
-                    }
-                )
+                "html": request.env['ir.qweb']._render('dms.document_onboarding_directory_panel', {
+                    "state": company.get_and_update_documents_onboarding_state(),
+                    "company": company,
+                })
             }
         return {}
 
@@ -30,12 +26,10 @@ class OnboardingController(http.Controller):
         check = request.env.user.has_group("dms.group_dms_manager")
         if check and not closed:
             return {
-                "html": request.env.ref("dms.document_onboarding_file_panel")._render(
-                    {
-                        "state": company.get_and_update_documents_onboarding_state(),
-                        "company": company,
-                    }
-                )
+                "html": request.env['ir.qweb']._render('dms.document_onboarding_file_panel', {
+                    "state": company.get_and_update_documents_onboarding_state(),
+                    "company": company,
+                })
             }
         return {}
 
